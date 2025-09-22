@@ -1,3 +1,4 @@
+import asyncio
 import toastiepy
 
 app = toastiepy.server()
@@ -87,5 +88,6 @@ def catchall(req, res):
     _404_count += 1
     res.status(404).send(f"404 File Not Found\ntimes error occured {_404_count}")
 
-app.listen("::", 3000)
-print(f"Hosting server @ {app.host}:{app.port}")
+@app.listen("127.0.0.1", 3000)
+def main(app):
+    print(f"Hosting server @ {app.host}:{app.port}")
