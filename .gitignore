@@ -1,0 +1,6 @@
+.*
+!.gitignore
+!.github
+
+venv
+build
