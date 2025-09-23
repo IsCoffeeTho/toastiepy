@@ -6,6 +6,8 @@ import json
 import os
 import re
 
+import toastiepy
+
 def InvalidHeaderAccess():
     raise Exception("Invalid Header Access, cannot modify headers after sending.")
 
@@ -176,7 +178,9 @@ class response:
             if self._headers.get("Set-Cookie", None) is not None:
                 self._headers["Set-Cookie"] = []
             self._headers["Set-Cookie"].append(cookieString)
-            
+        
+        self._headers["X-Powered-By"] = [f"ToastiePy v{toastiepy.version}"]
+        
         def defaultStatusMessage(code):
             map = {
                 100: "Continue",

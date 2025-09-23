@@ -92,6 +92,7 @@ class server:
         if len(methodRoutes) == 0:
             return False
         for route in methodRoutes:
+            print(route.path)
             if route.path.find(":") != -1:
                 masterPath = route.path.split("/")
                 candidatePath = req.path.split("/")
@@ -145,7 +146,7 @@ class server:
         try:
             await self._trickleRequest(req, res, _nothing)
             if res._sentHeaders:
-                client._tx.write(res._build_response())
+                client._tx.write(bytes(res._build_response(), "utf8"))
             else:
                 client._tx.write(bytes(f"HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/plain\r\nX-Powered-By: ToastiePy v{toastiepy.version}\r\n\r\nCannot {req.method} {req.path}", "utf8"))
         except Exception as err:

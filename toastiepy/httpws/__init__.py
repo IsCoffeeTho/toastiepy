@@ -14,7 +14,6 @@ class server:
         httpStream = client(reader, writer)
         await httpStream.parse()
         await self._req_handler(httpStream)
-        
     
     def begin(self):
         async def start():
