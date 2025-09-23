@@ -1,8 +1,9 @@
 import re
-import socket
-import asyncio
 from toastiepy import httpws
-from toastiepy.constants import PATH_PATTERN_LIKE
+import toastiepy
+from toastiepy.request import request
+from toastiepy.response import response
+from toastiepy import constants
 
 class _routeDescriptor:
     def __init__(self, method, path, fn):
@@ -40,7 +41,7 @@ class server:
         return self._addCatch("WS", path)
     def _addCatch(self, method, path):
         def wrapper(fn):
-            if re.search(PATH_PATTERN_LIKE, path) is None:
+            if re.search(constants.PATH_PATTERN_LIKE, path) is None:
                 raise TypeError("path is not PATH_PATTERN_LIKE")
             self._routes.append(_routeDescriptor(
                 method=method,
@@ -56,7 +57,7 @@ class server:
                 routePath = route.path
                 if route.path[-1] == '/':
                     routePath = f"{route.path}/"
-                return path == route.path or path.startwith(routePath)
+                return path == route.path or path.startswith(routePath)
             if route.method == "WS":
                 if method != "GET":
                     return False
@@ -81,7 +82,7 @@ class server:
                 routes.append(route)
         return routes
     
-    def _trickleRequest(self, req, res, next):
+    async def _trickleRequest(self, req, res, next):
         caughtOnce = False
         continueAfterCatch = False
         def nextFn():
@@ -103,7 +104,7 @@ class server:
                 req.params = {}
             req.routeStack.append(route)
             continueAfterCatch = False
-            if req.headers["Upgrade"] is not None:
+            if req.headers.get("Upgrade", None) is not None:
                 if route.method != "WS":
                     continue
                 caughtOnce = True
@@ -116,7 +117,7 @@ class server:
                     req.path = f'/{req.path}'
                 trickled = False
                 try:
-                    trickled = route.fn._trickleRequest(req, res, nextFn)
+                    trickled = await route.fn._trickleRequest(req, res, nextFn)
                 except Exception:
                     trickled = True
                 if trickled:
@@ -127,7 +128,7 @@ class server:
             else:
                 caughtOnce = True
                 try:
-                    route.fn(req, res, nextFn)
+                    await route.fn(req, res, nextFn)
                 except Exception:
                     pass
             if not continueAfterCatch:
@@ -135,12 +136,27 @@ class server:
         if continueAfterCatch:
             next()
         return caughtOnce
-        
+
+    async def _requestHandler(self, client):
+        res = response(self, client)
+        req = request(self, client, res, client._tx.transport.get_extra_info("socket").getpeername())
+        def _nothing():
+            pass
+        try:
+            await self._trickleRequest(req, res, _nothing)
+            if res._sentHeaders:
+                client._tx.write(res._build_response())
+            else:
+                client._tx.write(bytes(f"HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/plain\r\nX-Powered-By: ToastiePy v{toastiepy.version}\r\n\r\nCannot {req.method} {req.path}", "utf8"))
+        except Exception as err:
+            client._tx.write(bytes(f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\nX-Powered-By: ToastiePy v{toastiepy.version}\r\n\r\n500 Internal Server Error\nUncaught: {err}", "utf8"))
+        client._tx.close()
+
     def listen(self, host="127.0.0.1", port=8080):
         def wrapper(fn):
             self.host = host
             self.port = port
-            self._s = httpws.server(host, port)
+            self._s = httpws.server(host, port, self._requestHandler)
             fn(self)
             self._s.begin()
         return wrapper

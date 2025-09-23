@@ -1,5 +1,6 @@
 import asyncio
 import toastiepy
+import json
 
 app = toastiepy.server()
 
@@ -9,8 +10,10 @@ def fail(req, res):
     if err:
         res.status(404).send(f"404 File Not Found\nERR: {err}")
 
-# toastiebun has an implementation for handling async datatypes
-# skipped for now
+@app.get("/async")
+async def asynchronous(req, res):
+    await asyncio.sleep(1)
+    res.send("waited 1 sec before responding")
 
 @app.get("/")
 def index(req, res, next):
