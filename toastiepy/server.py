@@ -1,10 +1,10 @@
-from asyncio import coroutines
-import re
-from toastiepy import httpws
-import toastiepy
-from toastiepy.request import request
+from toastiepy import httpws, constants
 from toastiepy.response import response
-from toastiepy import constants
+from toastiepy.request import request
+from asyncio import coroutines
+import toastiepy
+import inspect
+import re
 
 class _routeDescriptor:
     def __init__(self, method, path, fn):
@@ -21,9 +21,15 @@ class server:
         self._s = None
     
     def use(self, path="/", server=None):
+        if re.search(constants.PATH_PATTERN_LIKE, path) is None:
+            raise TypeError("path is not PATH_PATTERN_LIKE")
         if server is None:
             raise TypeError("use(path, server): server is not of toastiepy.server")
-        self._addCatch("MIDDLEWARE", path)(server)
+        self._routes.append(_routeDescriptor(
+            method="MIDDLEWARE",
+            path=path,
+            fn=server
+        ))
         return self
     
     def all(self, path):
@@ -44,10 +50,18 @@ class server:
         def wrapper(fn):
             if re.search(constants.PATH_PATTERN_LIKE, path) is None:
                 raise TypeError("path is not PATH_PATTERN_LIKE")
+            
+            sig = inspect.signature(fn)
+            num_args = len(sig.parameters)
+            async def handler(req, res, next):
+                return fn(req, res)
+            if num_args == 3:
+                handler = fn
+            
             self._routes.append(_routeDescriptor(
                 method=method,
                 path=path,
-                fn=fn
+                fn=handler
             ))
         return wrapper
     
@@ -71,7 +85,7 @@ class server:
                 candidatePath = path.split("/")
                 if len(masterPath) != len(candidatePath):
                     return False
-                for idx in range(0,len(masterPath)):
+                for idx in range(1,len(masterPath)):
                     key = masterPath[idx]
                     if key[0] == ':':
                         continue
@@ -114,13 +128,11 @@ class server:
             elif route.method == "MIDDLEWARE":
                 savedPath = req.path
                 req.path = req.path[len(route.path):]
-                if req.path[0] != '/':
+                if req.path == "":
+                    req.path = "/"
+                elif req.path[0] != '/':
                     req.path = f'/{req.path}'
-                trickled = False
-                try:
-                    trickled = await route.fn._trickleRequest(req, res, nextFn)
-                except Exception:
-                    trickled = True
+                trickled = await route.fn._trickleRequest(req, res, nextFn)
                 if trickled:
                     caughtOnce = True
                 else:
@@ -128,11 +140,9 @@ class server:
                 req.path = savedPath
             else:
                 caughtOnce = True
-                try:
-                    print(route.fn)
-                    route.fn(req, res, nextFn)
-                except Exception:
-                    pass
+                ret = route.fn(req, res, nextFn)
+                if coroutines.iscoroutine(ret):
+                    await ret
             if not continueAfterCatch:
                 break
         if continueAfterCatch:
@@ -152,6 +162,8 @@ class server:
                 client._tx.write(bytes(f"HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/plain\r\nX-Powered-By: ToastiePy v{toastiepy.version}\r\n\r\nCannot {req.method} {req.path}", "utf8"))
         except Exception as err:
             client._tx.write(bytes(f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\nX-Powered-By: ToastiePy v{toastiepy.version}\r\n\r\n500 Internal Server Error\nUncaught: {err}", "utf8"))
+            client._tx.close()
+            raise err
         client._tx.close()
 
     def listen(self, host="127.0.0.1", port=8080):

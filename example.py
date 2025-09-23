@@ -4,9 +4,11 @@ import json
 
 app = toastiepy.server()
 
+__dirname = __file__.rpartition('/')[0]
+
 @app.get("/fail")
 def fail(req, res):
-    err = res.sendStatic(f"{__path__}/mockserver/")
+    err = res.sendStatic(f"{__dirname}/mockserver/")
     if err:
         res.status(404).send(f"404 File Not Found\nERR: {err}")
 
@@ -17,7 +19,7 @@ async def asynchronous(req, res):
 
 @app.get("/")
 def index(req, res, next):
-    err = res.sendStatic(f'{__path__}/mockserver/index.html')
+    err = res.sendStatic(f'{__dirname}/mockserver/index.html')
     if err:
         print("missing index, moving on")
         next()
@@ -63,7 +65,7 @@ def redirected(req, res):
 
 @app.get("/empty")
 def empty(req, res):
-    err = res.sendFile(f"{__path__}/mockserver/emptyFile.txt")
+    err = res.sendFile(f"{__dirname}/mockserver/emptyFile.txt")
     if err:
         res.status(404).send("404\nThe file exists but is empty\n\nHand Written Error")
 
@@ -72,11 +74,12 @@ def long_path(req, res):
     res.send("This is an example long path route")
 
 subserver = toastiepy.server()
+app.use("/subserver", subserver)
 app.use("/sub", subserver)
 
 @subserver.get("/")
 def subserver_index(req, res):
-    err = res.sendFile()
+    err = res.sendFile(f"{__dirname}/mockserver/subserver.html")
     if err:
         res.status(404).send(f"404 File Not Found\nERR: {err}")
 

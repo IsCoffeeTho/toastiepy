@@ -97,8 +97,8 @@ class response:
     def sendStatic(self, path):
         statInfo = os.stat(path)
         if self._req.headers.get("If-Modified-Since", None) is not None:
-            modifiedSince = self._req.headers["If-Modified-Since"][0]
-            modifiedSince = datetime.strptime(modifiedSince, '%a, %d %b %Y %H:%M:%S')
+            modifiedSince = self._req.headers["If-Modified-Since"][1]
+            modifiedSince = datetime.strptime(modifiedSince, '%d %b %Y %H:%M:%S GMT')
             if modifiedSince.timestamp() >= statInfo.st_ctime:
                 self._status = 304
                 self.send("")
