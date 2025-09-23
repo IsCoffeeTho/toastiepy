@@ -19,7 +19,6 @@ class server:
         async def start():
             _s = None
             try:
-                print("start() called")
                 _s = await asyncio.start_server(self._handler, self.host, self.port)
                 await _s.wait_closed()
             except asyncio.exceptions.CancelledError:

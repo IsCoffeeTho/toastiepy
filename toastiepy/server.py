@@ -1,3 +1,4 @@
+from asyncio import coroutines
 import re
 from toastiepy import httpws
 import toastiepy
@@ -92,7 +93,6 @@ class server:
         if len(methodRoutes) == 0:
             return False
         for route in methodRoutes:
-            print(route.path)
             if route.path.find(":") != -1:
                 masterPath = route.path.split("/")
                 candidatePath = req.path.split("/")
@@ -129,7 +129,8 @@ class server:
             else:
                 caughtOnce = True
                 try:
-                    await route.fn(req, res, nextFn)
+                    print(route.fn)
+                    route.fn(req, res, nextFn)
                 except Exception:
                     pass
             if not continueAfterCatch:

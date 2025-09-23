@@ -14,7 +14,7 @@ def InvalidHeaderAccess():
 class response:
     def __init__(self, parent, req):
         self._parent = parent
-        self._sock = req
+        self._req = req
         self._sentHeaders = False
         self._status = 200
         self._body = None
@@ -96,8 +96,8 @@ class response:
     
     def sendStatic(self, path):
         statInfo = os.stat(path)
-        if self._sock.headers.get("If-Modified-Since", None) is not None:
-            modifiedSince = self._sock.headers["If-Modified-Since"][0]
+        if self._req.headers.get("If-Modified-Since", None) is not None:
+            modifiedSince = self._req.headers["If-Modified-Since"][0]
             modifiedSince = datetime.strptime(modifiedSince, '%a, %d %b %Y %H:%M:%S')
             if modifiedSince.timestamp() >= statInfo.st_ctime:
                 self._status = 304
@@ -248,7 +248,7 @@ class response:
                 511: "Network Authentication Required"
             }
             return map.get(code, "Unknown Response Code")
-        response = f"{self._sock.httpVersion} {self._status} {defaultStatusMessage(self._status)}\r\n"
+        response = f"{self._req.httpVersion} {self._status} {defaultStatusMessage(self._status)}\r\n"
     
         for headerName in self._headers:
             for headerLine in self._headers[headerName]:
