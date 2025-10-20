@@ -1,0 +1,26 @@
+[build-tools]
+requires = ["setuptools >= 80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "toastiepy"
+dynamic = ["version"]
+description = "Adds expressjs like webframework to your python project"
+readme = "README.md"
+authors = [
+	{ name = "Aaron Menadue", email = "aaron.menadue+toastiepy@gmail.com" },
+]
+keywords = [
+	"http",
+	"websocket",
+	"web",
+	"toastiepy",
+	"toastiebun",
+	"express",
+]
+
+[tool.setuptools]
+packages = ["toastiepy"]
+
+[tool.setuptools.dynamic]
+version = {attr="toastiepy.__version__"}

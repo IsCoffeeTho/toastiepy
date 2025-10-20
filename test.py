@@ -1,3 +1,4 @@
+import asyncio
 from inspect import isfunction
 import inspect
 import time
@@ -110,68 +111,72 @@ if __name__ == "__main__":
         global callsCountedOfExpect
         callsCountedOfExpect += 1
         return expect(v, reason)
-    start_tests = time.time_ns()
-    for testFile in testFileQueue:
-        testQueue: list[testDescriptor] = []
-        definitions = {}
-        code = ""
-        print(f'\n{testFile}:')
-        try:
-            with open(testFile, "rb") as source_file:
-                code = compile(source_file.read(), testFile, "exec")
-        except Exception as err:
-            fails += 1
-            print("\x1b[31mFile failed to load.\x1b[0m")
-            printError(err)
-            continue
-        try:
-            exec(code, definitions)
-        except Exception as err:
-            timeDeltaString = ""
-            fails += 1
-            printError(err)
-            continue
-        for var in definitions:
-            potentialTest = definitions[var]
-            if not isfunction(potentialTest):
-                continue
-            if var == potentialTest.__name__:
-                continue
-            if not potentialTest.__name__.startswith(var):
-                continue
-            testName = potentialTest.__name__[len(var):]
-            testQueue.append(testDescriptor(
-                testName,
-                potentialTest
-            ))
-        definitions["expect"] = _wrapped_expect
-        failedTests = 0
-        passedTests = 0
-        for _test in testQueue:
-            start = time.time_ns()
+    def runner():
+        global passes
+        global fails
+        start_tests = time.time_ns()
+        for testFile in testFileQueue:
+            testQueue: list[testDescriptor] = []
+            definitions = {}
+            code = ""
+            print(f'\n{testFile}:')
             try:
-                _test.run()
-                end = time.time_ns()
-                passedTests += 1
-                timeDeltaString = ""
-                if end-start > 1_000_000:
-                    timeDeltaString = f' [{int((end-start) / 10_000) / 100}ms]'
-                print(f'\x1b[32m✓\x1b[0;1m {_test.name}\x1b[0m{timeDeltaString}')
+                with open(testFile, "rb") as source_file:
+                    code = compile(source_file.read(), testFile, "exec")
             except Exception as err:
-                end = time.time_ns()
-                timeDeltaString = ""
-                if (end-start) > 1_000_000:
-                    timeDeltaString = f' [{int((end - start) / 10_000) / 100}ms]'
-                failedTests += 1
-                print(f'\x1b[31m✘\x1b[0;1m {_test.name}\x1b[0m{timeDeltaString}')
+                fails += 1
+                print("\x1b[31mFile failed to load.\x1b[0m")
                 printError(err)
                 continue
-        fails += failedTests
-        passes += passedTests
-    end_tests = time.time_ns()
+            try:
+                exec(code, definitions)
+            except Exception as err:
+                timeDeltaString = ""
+                fails += 1
+                printError(err)
+                continue
+            for var in definitions:
+                potentialTest = definitions[var]
+                if not isfunction(potentialTest):
+                    continue
+                if var == potentialTest.__name__:
+                    continue
+                if not potentialTest.__name__.startswith(var):
+                    continue
+                testName = potentialTest.__name__[len(var):]
+                testQueue.append(testDescriptor(
+                    testName,
+                    potentialTest
+                ))
+            definitions["expect"] = _wrapped_expect
+            failedTests = 0
+            passedTests = 0
+            for _test in testQueue:
+                start = time.time_ns()
+                try:
+                    _test.run()
+                    end = time.time_ns()
+                    passedTests += 1
+                    timeDeltaString = ""
+                    if end-start > 1_000_000:
+                        timeDeltaString = f' [{int((end-start) / 10_000) / 100}ms]'
+                    print(f'\x1b[32m✓\x1b[0;1m {_test.name}\x1b[0m{timeDeltaString}')
+                except Exception as err:
+                    end = time.time_ns()
+                    timeDeltaString = ""
+                    if (end-start) > 1_000_000:
+                        timeDeltaString = f' [{int((end - start) / 10_000) / 100}ms]'
+                    failedTests += 1
+                    print(f'\x1b[31m✘\x1b[0;1m {_test.name}\x1b[0m{timeDeltaString}')
+                    printError(err)
+                    continue
+            fails += failedTests
+            passes += passedTests
+        end_tests = time.time_ns()
     print("")
     print(f' \x1b[32m{passes} pass\x1b[0m')
     print(f' \x1b[90m{fails} fail\x1b[0m')
     print(f' {callsCountedOfExpect} expect() calls')
     print(f'Ran {passes + fails} tests across {len(testFileQueue)} files. [\x1b[90;1m{int((end_tests - start_tests) / 1_000_0) / 100}ms\x1b[0m]')
     exit(1 if fails > 0 else 0)
+    asyncio.run(runner())

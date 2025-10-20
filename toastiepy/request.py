@@ -1,10 +1,13 @@
 from toastiepy import server
 from urllib.parse import urlparse, parse_qs, urlunparse
+from toastiepy.httpws.websock import websocketClient
 
 class request:
     def __init__(self, parent, socket, res, ip):
         self._parent = parent
-        self._req = socket
+        self._rx = socket._rx
+        self._tx = socket._tx
+        self._websocket = socket._websocket
         self.ip = ip
         self.baseUrl = ""
         url = urlparse(socket.path)
@@ -15,7 +18,7 @@ class request:
         self.res = res
         self.cookies = {}
         if socket.headers.get("Cookie", None) is not None:
-            for cookieLine in self.headers["Cookie"]:
+            for cookieLine in socket.headers["Cookie"]:
                 cookies = cookieLine.split(";")
                 for cookie in cookies:
                     cookieName, _, cookieValue = cookie.partition("=")
@@ -30,3 +33,9 @@ class request:
         self.httpVersion = socket.httpVersion
         self.data = None
         self.body = socket.body
+        self._upgraded = False
+    
+    def upgrade(self, handler):
+        self._upgraded = True
+        if self._websocket._upgradeConnection(self, self.res):
+            handler(self._websocket)

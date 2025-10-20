@@ -1,3 +1,4 @@
+import asyncio
 from toastiepy import httpws, constants
 from toastiepy.response import response
 from toastiepy.request import request
@@ -45,18 +46,21 @@ class server:
     def delete(self, path):
         return self._addCatch("DELETE", path)
     def websocket(self, path):
-        return self._addCatch("WS", path)
+        return self._addCatch("WEBSOCKET", path)
     def _addCatch(self, method, path):
         def wrapper(fn):
             if re.search(constants.PATH_PATTERN_LIKE, path) is None:
                 raise TypeError("path is not PATH_PATTERN_LIKE")
             
-            sig = inspect.signature(fn)
-            num_args = len(sig.parameters)
-            async def handler(req, res, next):
-                return fn(req, res)
-            if num_args == 3:
-                handler = fn
+            handler = fn
+            
+            if method != "WEBSOCKET":
+                sig = inspect.signature(fn)
+                num_args = len(sig.parameters)
+                if num_args == 2:
+                    async def wrapped(req, res, next):
+                        return fn(req, res)
+                    handler = wrapped
             
             self._routes.append(_routeDescriptor(
                 method=method,
@@ -73,10 +77,10 @@ class server:
                 if route.path[-1] == '/':
                     routePath = f"{route.path}/"
                 return path == route.path or path.startswith(routePath)
-            if route.method == "WS":
+            if route.method == "WEBSOCKET":
                 if method != "GET":
                     return False
-            if route.method != "*" and route.method != method:
+            elif route.method != "*" and route.method != method:
                 return False
             if route.path[-1] == '*':
                 return path.startswith(route.path[0:-1])
@@ -119,12 +123,11 @@ class server:
                 req.params = {}
             req.routeStack.append(route)
             continueAfterCatch = False
-            if req.headers.get("Upgrade", None) is not None:
-                if route.method != "WS":
+            if route.method == "WEBSOCKET":
+                if req.headers.get("Upgrade", None) != ["websocket"]:
                     continue
-                caughtOnce = True
-                # @TODO Implement
-                req.upgrade()
+                req.upgrade(route.fn)
+                return True
             elif route.method == "MIDDLEWARE":
                 savedPath = req.path
                 req.path = req.path[len(route.path):]
@@ -132,8 +135,8 @@ class server:
                     req.path = "/"
                 elif req.path[0] != '/':
                     req.path = f'/{req.path}'
-                trickled = await route.fn._trickleRequest(req, res, nextFn)
-                if trickled:
+                trickleCaught = await route.fn._trickleRequest(req, res, nextFn)
+                if trickleCaught:
                     caughtOnce = True
                 else:
                     continueAfterCatch = True
@@ -156,15 +159,16 @@ class server:
             pass
         try:
             await self._trickleRequest(req, res, _nothing)
-            if res._sentHeaders:
-                client._tx.write(bytes(res._build_response(), "utf8"))
-            else:
-                client._tx.write(bytes(f"HTTP/1.1 405 Method Not Allowed\r\nContent-Type: text/plain\r\nX-Powered-By: ToastiePy v{toastiepy.version}\r\n\r\nCannot {req.method} {req.path}", "utf8"))
+            if not res._sentHeaders:
+                res.clear().status(405).send(f"Cannot {req.method} {req.path}")
+                client._tx.write(res._build_response())
+                client._tx.close()
         except Exception as err:
-            client._tx.write(bytes(f"HTTP/1.1 500 Internal Server Error\r\nContent-Type: text/plain\r\nX-Powered-By: ToastiePy v{toastiepy.version}\r\n\r\n500 Internal Server Error\nUncaught: {err}", "utf8"))
+            if not res._sentHeaders:
+                res.clear().status(500).send(f"500 Internal Server Error\nUncaught: {err}")
+                client._tx.write(res._build_response())
             client._tx.close()
             raise err
-        client._tx.close()
 
     def listen(self, host="127.0.0.1", port=8080):
         def wrapper(fn):
@@ -172,5 +176,5 @@ class server:
             self.port = port
             self._s = httpws.server(host, port, self._requestHandler)
             fn(self)
-            self._s.begin()
+            asyncio.create_task(self._s.begin())
         return wrapper

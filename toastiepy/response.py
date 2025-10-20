@@ -16,11 +16,17 @@ class response:
         self._parent = parent
         self._req = req
         self._sentHeaders = False
+        self.clear()
+    
+    def clear(self):
+        if self._sentHeaders:
+            InvalidHeaderAccess()
         self._status = 200
         self._body = None
         self._cookies = {}
         self._headers = {}
         self._contentType = None
+        return self
     
     def app(self):
         return self._parent
@@ -61,7 +67,7 @@ class response:
         }
         return self
     
-    def markNoCache(self, name):
+    def markNoCache(self):
         if self._sentHeaders:
             InvalidHeaderAccess()
         self._headers["Cache-Control"] = ["no-store"]
@@ -79,10 +85,9 @@ class response:
         return True
     
     def send(self, body):
-        self.end()
         if isinstance(body, bytes):
             self._body = body.decode('utf8')
-            if self._contentType is None:
+            if self._contentType is None: # if not set
                 self._contentType = "application/octet-stream"
             return
         if isinstance(body, dict) or isinstance(body, list):
@@ -91,8 +96,11 @@ class response:
                 self._contentType = "application/json"
         else:
             self._body = f'{body}'
-            if self._contentType is None:
-                self._contentType = "text/plain"
+        if self._contentType is None:
+            self._contentType = "text/plain"
+        self.end()
+        self._req._tx.write(self._build_response())
+        
     
     def sendStatic(self, path):
         statInfo = os.stat(path)
@@ -113,10 +121,10 @@ class response:
             if not S_ISREG(statInfo.st_mode):
                 raise TypeError("Cannot send anything but a file")
             if statInfo.st_size == 0:
-                self._body = ""
                 if 200 >= self._status and self._status < 300:
                     self._status = 204
                     self.send("")
+                    return
             else:
                 self._body = open(path, "r").read(-1)
             if self._contentType == None:
@@ -175,12 +183,10 @@ class response:
                 cookieString += "; Secure"
             if cookie.get("httpOnly", False):
                 cookieString += "; HttpOnly"
-            if self._headers.get("Set-Cookie", None) is not None:
+            if self._headers.get("Set-Cookie", None) is None:
                 self._headers["Set-Cookie"] = []
             self._headers["Set-Cookie"].append(cookieString)
-        
-        self._headers["X-Powered-By"] = [f"ToastiePy v{toastiepy.version}"]
-        
+    
         def defaultStatusMessage(code):
             map = {
                 100: "Continue",
@@ -250,6 +256,8 @@ class response:
             return map.get(code, "Unknown Response Code")
         response = f"{self._req.httpVersion} {self._status} {defaultStatusMessage(self._status)}\r\n"
     
+        self._headers["X-Powered-By"] = [f"ToastiePy v{toastiepy.__version__}"]
+    
         for headerName in self._headers:
             for headerLine in self._headers[headerName]:
                 response += f"{headerName}: {headerLine}\r\n"
@@ -257,4 +265,4 @@ class response:
         
         if self._body is not None and self._body != "":
             response += self._body
-        return response
+        return bytes(response, "utf8")

@@ -1,16 +1,15 @@
 import asyncio
 import toastiepy
-import json
 
 app = toastiepy.server()
 
 __dirname = __file__.rpartition('/')[0]
 
 @app.get("/fail")
-def fail(req, res):
+def fail(req, res, next):
     err = res.sendStatic(f"{__dirname}/mockserver/")
-    if err:
-        res.status(404).send(f"404 File Not Found\nERR: {err}")
+    if err is not None:
+        next()
 
 @app.get("/async")
 async def asynchronous(req, res):
@@ -20,13 +19,13 @@ async def asynchronous(req, res):
 @app.get("/")
 def index(req, res, next):
     err = res.sendStatic(f'{__dirname}/mockserver/index.html')
-    if err:
+    if err is not None:
         print("missing index, moving on")
         next()
 
 @app.websocket("/echo-ws")
-def echo_ws(ws):    
-    @ws.onData
+def echo_ws(ws):
+    @ws.ondata
     def ws_data_echo(data):
         ws.send(data)
 
@@ -64,10 +63,10 @@ def redirected(req, res):
     res.send("redirected from redirect")
 
 @app.get("/empty")
-def empty(req, res):
+def empty(req, res, next):
     err = res.sendFile(f"{__dirname}/mockserver/emptyFile.txt")
-    if err:
-        res.status(404).send("404\nThe file exists but is empty\n\nHand Written Error")
+    if err is not None:
+        next()
 
 @app.get("/long/path")
 def long_path(req, res):
@@ -80,7 +79,7 @@ app.use("/sub", subserver)
 @subserver.get("/")
 def subserver_index(req, res):
     err = res.sendFile(f"{__dirname}/mockserver/subserver.html")
-    if err:
+    if err is not None:
         res.status(404).send(f"404 File Not Found\nERR: {err}")
 
 @subserver.get("/*")
@@ -94,6 +93,10 @@ def catchall(req, res):
     _404_count += 1
     res.status(404).send(f"404 File Not Found\ntimes error occured {_404_count}")
 
-@app.listen("127.0.0.1", 3000)
-def main(app):
-    print(f"Hosting server @ {app.host}:{app.port}")
+async def main():
+    @app.listen("127.0.0.1", 3000)
+    def ready(app):
+        print(f"Hosting server @ {app.host}:{app.port}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
