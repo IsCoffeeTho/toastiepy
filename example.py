@@ -24,10 +24,16 @@ def index(req, res, next):
         next()
 
 @app.websocket("/echo-ws")
-def echo_ws(ws):
+async def echo_ws(ws):
+    print("websocket connected")
+    await ws.send("Hello")
     @ws.ondata
-    def ws_data_echo(data):
-        ws.send(data)
+    async def ws_data_echo(data):
+        print(data)
+        await ws.send(data)
+    @ws.onclose
+    def ws_close(code, reason):
+        print("websocket closed")
 
 @app.get("/cookie/:name")
 def cookie_blank(req, res):
@@ -93,10 +99,10 @@ def catchall(req, res):
     _404_count += 1
     res.status(404).send(f"404 File Not Found\ntimes error occured {_404_count}")
 
-async def main():
+def main():
     @app.listen("127.0.0.1", 3000)
     def ready(app):
         print(f"Hosting server @ {app.host}:{app.port}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

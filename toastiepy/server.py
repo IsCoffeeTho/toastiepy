@@ -2,7 +2,6 @@ import asyncio
 from toastiepy import httpws, constants
 from toastiepy.response import response
 from toastiepy.request import request
-from asyncio import coroutines
 import toastiepy
 import inspect
 import re
@@ -126,7 +125,7 @@ class server:
             if route.method == "WEBSOCKET":
                 if req.headers.get("Upgrade", None) != ["websocket"]:
                     continue
-                req.upgrade(route.fn)
+                await req.upgrade(route.fn)
                 return True
             elif route.method == "MIDDLEWARE":
                 savedPath = req.path
@@ -144,7 +143,7 @@ class server:
             else:
                 caughtOnce = True
                 ret = route.fn(req, res, nextFn)
-                if coroutines.iscoroutine(ret):
+                if asyncio.coroutines.iscoroutine(ret):
                     await ret
             if not continueAfterCatch:
                 break
@@ -176,5 +175,5 @@ class server:
             self.port = port
             self._s = httpws.server(host, port, self._requestHandler)
             fn(self)
-            asyncio.create_task(self._s.begin())
+            asyncio.run(self._s.begin())
         return wrapper

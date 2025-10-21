@@ -9,7 +9,7 @@ import re
 import toastiepy
 
 def InvalidHeaderAccess():
-    raise Exception("Invalid Header Access, cannot modify headers after sending.")
+    return Exception("Invalid Header Access, cannot modify headers after sending.")
 
 class response:
     def __init__(self, parent, req):
@@ -20,7 +20,7 @@ class response:
     
     def clear(self):
         if self._sentHeaders:
-            InvalidHeaderAccess()
+            raise InvalidHeaderAccess()
         self._status = 200
         self._body = None
         self._cookies = {}
@@ -48,7 +48,7 @@ class response:
     
     def cookie(self, name, value, options={}):
         if self._sentHeaders:
-            InvalidHeaderAccess()
+            raise InvalidHeaderAccess()
         if re.search(constants.COOKIE_NAME_LIKE, name) is None:
             raise SyntaxError(f'cookie name "{name}" has invalid characters')
         options["value"] = value
@@ -57,7 +57,7 @@ class response:
     
     def clearCookie(self, name):
         if self._sentHeaders:
-            InvalidHeaderAccess()
+            raise InvalidHeaderAccess()
         if re.search(constants.COOKIE_NAME_LIKE, name) is None:
             raise SyntaxError(f'cookie name "{name}" has invalid characters')
         self._cookies[name] = {
@@ -69,33 +69,37 @@ class response:
     
     def markNoCache(self):
         if self._sentHeaders:
-            InvalidHeaderAccess()
+            raise InvalidHeaderAccess()
         self._headers["Cache-Control"] = ["no-store"]
     
     def status(self, code):
         if self._sentHeaders:
-            InvalidHeaderAccess()
+            raise InvalidHeaderAccess()
         self._status = code
         return self
     
     def end(self):
         if self._sentHeaders:
-            InvalidHeaderAccess()
+            raise InvalidHeaderAccess()
         self._sentHeaders = True
         return True
     
-    def send(self, body):
-        if isinstance(body, bytes):
-            self._body = body.decode('utf8')
+    def send(self, body=None):
+        if body is not None:
+            self._body = body
+        
+        if isinstance(self._body, bytes):
+            self._body = self._body.decode('utf8')
             if self._contentType is None: # if not set
                 self._contentType = "application/octet-stream"
-            return
-        if isinstance(body, dict) or isinstance(body, list):
-            self._body = json.JSONEncoder().encode(body)
+        elif isinstance(self._body, dict) or isinstance(self._body, list):
+            self._body = json.JSONEncoder().encode(self._body)
             if self._contentType is None:
                 self._contentType = "application/json"
+        elif self._body is None:
+            self._body = ""
         else:
-            self._body = f'{body}'
+            self._body = f'{self._body}'
         if self._contentType is None:
             self._contentType = "text/plain"
         self.end()
@@ -109,7 +113,7 @@ class response:
             modifiedSince = datetime.strptime(modifiedSince, '%d %b %Y %H:%M:%S GMT')
             if modifiedSince.timestamp() >= statInfo.st_ctime:
                 self._status = 304
-                self.send("")
+                self.send()
                 return
         else:
             self._headers["Last-Modified"] = [datetime.fromtimestamp(statInfo.st_ctime).strftime('%a, %d %b %Y %H:%M:%S GMT')]
@@ -123,13 +127,13 @@ class response:
             if statInfo.st_size == 0:
                 if 200 >= self._status and self._status < 300:
                     self._status = 204
-                    self.send("")
+                    self.send()
                     return
             else:
                 self._body = open(path, "r").read(-1)
             if self._contentType == None:
                 self.type(path.rpartition(".")[2])
-            self.end()
+            self.send(self._body)
         except Exception as err:
             return err
     
@@ -157,7 +161,7 @@ class response:
     
     def redirect(self, path):
         if self._sentHeaders:
-            InvalidHeaderAccess()
+            raise InvalidHeaderAccess()
         self._headers["Location"] = [path]
         if self._status < 300 or self._status >= 400:
             self._status = 307

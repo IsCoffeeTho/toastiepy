@@ -1,3 +1,4 @@
+import asyncio
 from toastiepy import server
 from urllib.parse import urlparse, parse_qs, urlunparse
 from toastiepy.httpws.websock import websocketClient
@@ -35,7 +36,12 @@ class request:
         self.body = socket.body
         self._upgraded = False
     
-    def upgrade(self, handler):
+    async def upgrade(self, handler):
         self._upgraded = True
         if self._websocket._upgradeConnection(self, self.res):
-            handler(self._websocket)
+            ret = handler(self._websocket)
+            if asyncio.coroutines.iscoroutine(ret):
+                await ret
+            asyncio.create_task(self._websocket._activate())
+            return True
+        return False

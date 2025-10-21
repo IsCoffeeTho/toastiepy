@@ -1,8 +1,11 @@
+import asyncio
 from asyncio.streams import StreamReader
 import hashlib
 from posix import read
 import random
 import base64
+
+from toastiepy import response
 
 WS_OPCODE = {
     "CONTINUE": 0x0,
@@ -26,7 +29,9 @@ class wsFrame:
         self.payload = b""
 
     async def readFrame(self, stream: StreamReader):
-        frame = await stream.read()
+        frame = await stream.read(2)
+        if len(frame) == 0:
+            return False
         operationByte = frame[0]
         if operationByte & 0x01:
             self.FIN = True
@@ -43,13 +48,20 @@ class wsFrame:
         payloadLen <<= 1
         if payloadLen == 126:
             payloadLen = int(await stream.read(2))
+            if len(frame) == 0:
+                return False
         elif payloadLen == 127:
             payloadLen = int(await stream.read(8))
+            if len(frame) == 0:
+                return False
         if self.MASK:
             self.maskKey = await stream.read(4)
+            if len(frame) == 0:
+                return False
         self.payload = await stream.read(payloadLen)
         if self.MASK:
             self.maskFrame()
+        return True
     
     def buildFrame(self):
         operationByte = (self.opcode & 0xF) >> 4
@@ -85,53 +97,151 @@ class wsFrame:
             mask = self.maskKey[idx % 4]
             maskedPayload += (byte ^ mask).to_bytes()
         self.payload = maskedPayload
+        
+    def printDebug(self):
+        print("\nWebsocket:")
+        print("_FIN", self.FIN)
+        print("RSV1", self.RSV1)
+        print("RSV2", self.RSV2)
+        print("RSV3", self.RSV3)
+        print("OPCO", self.opcode)
+        print("MASK", self.MASK)
+        print("LENG", len(self.payload))
 
-def emptyHandler(data):
-    pass
+WS_STATES = {
+    "HTTP": 0,
+    "UPGRADING": 1,
+    "OPEN": 2,
+    "CLOSE": 3,
+}
 
 class websocketClient:
     def __init__(self, sock):
-        self._rx = sock[0]
-        self._tx = sock[1]
-        self._ondata = emptyHandler
-        self._onclose = emptyHandler
-        self._onerror = emptyHandler
+        self._rx: asyncio.StreamReader = sock[0]
+        self._tx: asyncio.StreamWriter = sock[1]
+        self.state = WS_STATES["HTTP"]
+        self._ondata = None
+        self._onclose = None
+        self._onerror = None
+        
     
     def _upgradeConnection(self, req, res):
-        websocketKey = req.headers.get("Sec-Websocket-Key", None)
+        websocketKey = req.headers.get("Sec-WebSocket-Key", None)
         if websocketKey is None:
             return False
-        websocketKey = bytes.decode(base64.b64decode(websocketKey), "utf8")
-        websocketVer = req.headers.get("Sec-Websocket-Version", None)
-        if websocketVer is None:
-            return False
+        websocketKey = websocketKey[0]
+        
         res.clear()
         
         acceptKey = websocketKey+"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
         hasher = hashlib.sha1(acceptKey.encode())
         acceptKey = hasher.digest()
-        res.append("Sec-Websocket-Accept", bytes.decode(base64.encodebytes(acceptKey), "utf8"))
+        
+        res.append("Sec-Websocket-Accept", bytes.decode(base64.encodebytes(acceptKey)[:-1], "utf8"))
         res.append("Upgrade", "websocket")
         res.append("Connection", "Upgrade")
-        res.status(101).send("")
+        res.status(101).send()
+        self.state = WS_STATES["OPEN"]
+        return True
     
-    def activate(self):
-        
-        
-    def close(self, reason="Closing Connection"):
-        
+    async def recieveFrames(self):
+        frame = wsFrame()
+        if not await frame.readFrame(self._rx):
+            return None
+        return frame
     
-    def ondata(self):
+    async def _activate(self):
+        open = True
+        payload = b""
+        while open:
+            frame = await self.recieveFrames()
+            if frame is None:
+                break
+
+            frame.printDebug()
+            
+            if frame.opcode == WS_OPCODE["PING"]:
+                res = wsFrame()
+                res.FIN = True
+                res.opcode = WS_OPCODE["PONG"]
+                res.payload = frame.payload
+                res.genMask()
+                res.maskFrame()
+                self._tx.write(res.buildFrame())
+                await self._tx.drain()
+                continue
+            elif frame.opcode == WS_OPCODE["PONG"]:
+                continue
+            elif frame.opcode == WS_OPCODE["CLOSE"]:
+                if self.state == WS_STATES["CLOSE"]: # already closed
+                    break
+                self.state = WS_STATES["CLOSE"]
+                res = wsFrame()
+                res.FIN = True
+                res.opcode = WS_OPCODE["PONG"]
+                res.payload = frame.payload
+                res.genMask()
+                res.maskFrame()
+                self._tx.write(res.buildFrame())
+                await self._tx.drain()
+                self._tx.close()
+                if self._onclose is not None:
+                    self._onclose(int(frame.payload), frame.payload)
+                break
+            
+            payload += frame.payload
+            
+            if frame.FIN:
+                if self._ondata is not None:
+                    ret = self._ondata(payload)
+                    payload = b""
+                    if asyncio.coroutines.iscoroutine(ret):
+                        asyncio.create_task(ret)
+        if self._onclose is not None:
+            ret = self._onclose(None, None)
+            if asyncio.coroutines.iscoroutine(ret):
+                await ret # type: ignore
+         
+    async def send(self, data):
+        if self.state != WS_STATES["OPEN"]:
+            raise Exception("Cannot send data to a websocket that is not open")
+        frame = wsFrame()
+        frame.FIN = True
+        frame.opcode = WS_OPCODE["BINARY"] if type(data) == "bytes" else WS_OPCODE["TEXT"]
+        frame.payload
+        frame.genMask()
+        frame.maskFrame()
+        self._tx.write(frame.buildFrame())
+        await self._tx.drain()
+        
+    def close(self, code=1005, reason="Closing Connection"):
+        if self.state != WS_STATES["OPEN"]:
+            raise Exception("Cannot close a websocket that is not open")
+        self.state = WS_STATES["CLOSE"]
+        
+        frame = wsFrame()
+        frame.opcode = WS_OPCODE["CLOSE"]
+        frame.payload = bytes(str(code), "utf8")
+        frame.genMask()
+        frame.maskFrame()
+        self._tx.write(frame.buildFrame())
+        frame.FIN = True
+        frame.payload = bytes(str(code), "utf8")
+        frame.genMask()
+        frame.maskFrame()
+        self._tx.write(frame.buildFrame())
+    
+    def ondata(self, fn):
         def wrapper(fn):
             self._ondata = fn
         return wrapper
     
-    def onclose(self):
+    def onclose(self, fn):
         def wrapper(fn):
             self._onclose = fn
         return wrapper
         
-    def onerror(self):
+    def onerror(self, fn):
         def wrapper(fn):
             self._onerror = fn
         return wrapper

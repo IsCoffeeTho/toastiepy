@@ -16,12 +16,14 @@ class server:
         await self._req_handler(httpStream)
 
     async def begin(self):
-        _s = None
+        self._s = None
         try:
-            _s = await asyncio.start_server(self._handler, self.host, self.port)
-            await _s.wait_closed()
+            self._s = await asyncio.start_server(self._handler, self.host, self.port)
+            await self._s.wait_closed()
         except asyncio.exceptions.CancelledError:
             pass
         except KeyboardInterrupt:
-            if _s is not None:
-                _s.close()
+            if self._s is not None:
+                self._s.close()
+        except Exception as err:
+            raise err
