@@ -113,7 +113,7 @@ class response:
             modifiedSince = datetime.strptime(modifiedSince, '%d %b %Y %H:%M:%S GMT')
             if modifiedSince.timestamp() >= statInfo.st_ctime:
                 self._status = 304
-                self.send()
+                self.send("")
                 return
         else:
             self._headers["Last-Modified"] = [datetime.fromtimestamp(statInfo.st_ctime).strftime('%a, %d %b %Y %H:%M:%S GMT')]
@@ -166,7 +166,7 @@ class response:
         if self._status < 300 or self._status >= 400:
             self._status = 307
         self._body = ""
-        self.end()
+        self.send()
     
     def _build_response(self):
         if self._contentType is not None:

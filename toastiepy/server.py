@@ -57,9 +57,9 @@ class server:
                 sig = inspect.signature(fn)
                 num_args = len(sig.parameters)
                 if num_args == 2:
-                    async def wrapped(req, res, next):
+                    async def droppedNextHandler(req, res, next):
                         return fn(req, res)
-                    handler = wrapped
+                    handler = droppedNextHandler
             
             self._routes.append(_routeDescriptor(
                 method=method,

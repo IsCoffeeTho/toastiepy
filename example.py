@@ -26,7 +26,7 @@ def index(req, res, next):
 @app.websocket("/echo-ws")
 async def echo_ws(ws):
     print("websocket connected")
-    await ws.send("Hello")
+    await ws.send(b"Hello")
     @ws.ondata
     async def ws_data_echo(data):
         print(data)
@@ -62,6 +62,7 @@ def show_cookies(req, res):
 
 @app.get("/redirect")
 def redirect(req, res):
+    print("redirect")
     res.redirect(f"/redirected?={req.path}")
 
 @app.get("/redirected")
