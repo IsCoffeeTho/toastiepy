@@ -204,7 +204,7 @@ class websocketClient:
                 self.state = WS_STATES["CLOSE"]
                 res = wsFrame()
                 res.FIN = True
-                res.opcode = WS_OPCODE["PONG"]
+                res.opcode = WS_OPCODE["CLOSE"]
                 res.payload = frame.payload
                 self._tx.write(res.buildFrame())
                 await self._tx.drain()
@@ -217,10 +217,8 @@ class websocketClient:
             
             if frame.FIN:
                 if self._ondata is not None:
-                    print("emitting unfragmented")
                     ret = self._ondata(payload)
                     if asyncio.coroutines.iscoroutine(ret):
-                        print("awaiting ondata")
                         asyncio.create_task(ret)
                     payload = b""
         if self._onclose is not None:
