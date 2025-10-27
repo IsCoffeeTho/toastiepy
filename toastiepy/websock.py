@@ -241,8 +241,10 @@ class websocketClient:
             raise Exception("Cannot close a websocket that is not open")
         self.state = WS_STATES["CLOSE"]
         frame = wsFrame()
+        frame.FIN = True
         frame.opcode = WS_OPCODE["CLOSE"]
         frame.payload = code.to_bytes(2)
+        frame.payload += bytes(reason, "utf8")
         self._tx.write(frame.buildFrame())
         await self._tx.drain()
     
