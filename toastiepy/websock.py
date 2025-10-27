@@ -236,7 +236,7 @@ class websocketClient:
         self._tx.write(frame.buildFrame())
         await self._tx.drain()
         
-    async def close(self, code=1005, reason="Closing Connection"):
+    async def close(self, code=1000, reason="Closing Connection"):
         if self.state != WS_STATES["OPEN"]:
             raise Exception("Cannot close a websocket that is not open")
         self.state = WS_STATES["CLOSE"]
