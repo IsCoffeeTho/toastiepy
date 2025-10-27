@@ -1,7 +1,5 @@
 import asyncio
-from toastiepy.response import response
-from toastiepy.request import request
-from toastiepy.httpws.client import HTTPFrame, client
+from . import response, request, http
 
 class server:
 	def __init__(self, host, port, req_handler):
@@ -11,7 +9,7 @@ class server:
 		self._s = None
 
 	async def _handler(self, reader, writer):
-		httpStream = client(reader, writer)
+		httpStream = http.client(reader, writer)
 		await httpStream.parse()
 		await self._req_handler(httpStream)
 

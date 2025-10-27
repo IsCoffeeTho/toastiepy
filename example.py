@@ -54,10 +54,15 @@ def clearcookie(req, res):
 @app.get("/cookies")
 def show_cookies(req, res):
 	res.send(req.cookies)
+	
+@app.get("/file")
+def empty(req, res, next):
+	err = res.sendFile(f"{__dirname}/mockserver/test.txt")
+	if err is not None:
+		next()
 
 @app.get("/redirect")
 def redirect(req, res):
-	print("redirect")
 	res.redirect(f"/redirected?={req.path}")
 
 @app.get("/redirected")

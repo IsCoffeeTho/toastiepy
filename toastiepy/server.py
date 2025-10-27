@@ -1,8 +1,5 @@
 import asyncio
-from toastiepy import httpws, constants
-from toastiepy.response import response
-from toastiepy.request import request
-import toastiepy
+from . import httpws, constants, response, request
 import inspect
 import re
 
@@ -152,20 +149,18 @@ class server:
 		return caughtOnce
 
 	async def _requestHandler(self, client):
-		res = response(self, client)
-		req = request(self, client, res, client._tx.transport.get_extra_info("socket").getpeername())
+		res = response.response(self, client)
+		req = request.request(self, client, res, client._tx.transport.get_extra_info("socket").getpeername())
 		def _nothing():
 			pass
 		try:
 			await self._trickleRequest(req, res, _nothing)
 			if not res._sentHeaders:
 				res.clear().status(405).send(f"Cannot {req.method} {req.path}")
-				client._tx.write(res._build_response())
 				client._tx.close()
 		except Exception as err:
 			if not res._sentHeaders:
 				res.clear().status(500).send(f"500 Internal Server Error\nUncaught: {err}")
-				client._tx.write(res._build_response())
 			client._tx.close()
 			raise err
 

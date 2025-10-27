@@ -1,4 +1,4 @@
-from toastiepy.httpws.websock import websocketClient
+from . import websock
 
 class HTTPFrame:
 	def __init__(self, reader):
@@ -36,7 +36,7 @@ class client:
 		self._rx = rx
 		self._tx = tx
 		self._httpFrame = HTTPFrame(rx)
-		self._websocket = websocketClient((rx, tx))
+		self._websocket = websock.websocketClient((rx, tx))
 	
 	async def parse(self):
 		await self._httpFrame.parse()

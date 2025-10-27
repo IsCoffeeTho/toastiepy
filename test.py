@@ -117,7 +117,7 @@ if __name__ == "__main__":
 		start_tests = time.time_ns()
 		for testFile in testFileQueue:
 			testQueue: list[testDescriptor] = []
-			definitions = {
+			definitions: dict[str, any] = {
 				"__name__": "__test__"
 			}
 			code = ""
@@ -158,7 +158,7 @@ if __name__ == "__main__":
 				try:
 					ret = _test.run()
 					if asyncio.coroutines.iscoroutine(ret):
-					    await ret
+						await ret
 					end = time.time_ns()
 					passedTests += 1
 					timeDeltaString = ""

@@ -1,7 +1,6 @@
 import asyncio
 from toastiepy import server
 from urllib.parse import urlparse, parse_qs, urlunparse
-from toastiepy.httpws.websock import websocketClient
 
 class request:
 	def __init__(self, parent, socket, res, ip):

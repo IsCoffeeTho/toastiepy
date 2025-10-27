@@ -1,0 +1,19 @@
+name: Publish PyPi
+
+on:
+  release:
+    types: [published, edited]
+
+jobs:
+  publish-pypi:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+      - run: python3 -m pip install build
+      - run: python3 -m pip install twine
+      - run: python3 -m build
+      - run: python3 -m twine check dist/*
+      - run: python3 -m twine upload dist/*
+        env:
+          PYPI_AUTH_TOKEN: ${{secrets.pypi_token}}
