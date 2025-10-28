@@ -5,57 +5,99 @@ COOKIE_NAME_LIKE = r'[_!#$%\'^+\.&`|~a-zA-Z0-9\-]'
 
 PATH_PATTERN_LIKE = r'^(([a-zA-Z0-9]|[\/:+_.-]|\%[0-9a-fA-F][0-9a-fA-F])+\*?|\*)$'
 
+
 def type(type):
-    type_keys = {
-        "application/octet-stream": [
-            "",
-            "bin",
-            "binary",
-            ".bin"
-        ],
-        "text/html": [
-            "html",
-            ".html",
-            ".htm",
-            ".htmx"
-        ],
-        "text/css": [
-            "css",
-            ".css",
-            "stylesheet",
-            "style"
-        ],
-        "application/javascript": [
-            "js",
-            ".js",
-            "jsx",
-            ".jsx",
-            "ts",
-            ".ts",
-            "tsx",
-            ".tsx"
-        ],
-        "application/json":[
-            "json",
-            "object",
-            ".json",
-            "dict",
-            "list"
-        ],
-        "text/xml": [
-            "xml",
-            ".xml"
-        ],
-        "text/plain": [
-            "text",
-            "plain",
-            "txt",
-            ".txt"
-        ],
-    }
-    
-    for mimeType in type_keys.keys():
-        for matchable in type_keys[mimeType]:
-            if type == matchable:
-                return mimeType
-    return "text/plain"
+	type_keys = {
+		"text/html": ["html", "htm"],
+		"text/css": ["css", "style", "stylesheet"],
+		"text/plain": ["txt", "text"],
+		"text/javascript": ["js", "javascript"],
+		"application/json": ["json"],
+		"image/jpeg": ["jpeg", "jpg"],
+		"image/png": ["png"],
+		"image/gif": ["gif"],
+		"image/svg+xml": ["svg"],
+		"image/webp": ["webp"],
+		"audio/mpeg": ["mp3"],
+		"audio/ogg": ["oga"],
+		"audio/wav": ["wav"],
+		"video/mp4": ["mp4"],
+		"video/webm": ["webm"],
+		"video/ogg": ["ogv"],
+		"application/xml": ["xml"],
+		"application/atom+xml": ["atom"],
+		"application/xhtml+xml": ["xhtml"],
+		"application/javascript": ["js"],
+		"application/manifest+json": ["webmanifest"],
+		"application/vnd.ms-fontobject": ["eot"],
+		"application/font-woff": ["woff"],
+		"application/font-woff2": ["woff2"],
+		"application/x-font-ttf": ["ttf"],
+		"application/x-javascript": ["js"],
+		"application/pdf": ["pdf"],
+		"text/csv": ["csv"],
+		"text/xml": ["xml"],
+		"application/x-www-form-urlencoded": ["form"],
+		"application/x-zip-compressed": ["zip"],
+		"application/zip": ["zip"],
+		"image/x-icon": ["ico"],
+		"application/x-shockwave-flash": ["swf"],
+		"application/x-rar-compressed": ["rar"],
+		"application/x-tar": ["tar"],
+		"application/octet-stream": ["", "bin", "exe", "dll", "class"],
+		"message/rfc822": ["eml"],
+		"application/ogg": ["ogx"],
+		"video/x-msvideo": ["avi"],
+		"video/x-ms-wmv": ["wmv"],
+		"application/x-7z-compressed": ["7z"],
+		"application/x-bzip": ["bz"],
+		"application/x-bzip2": ["bz2"],
+		"audio/x-aiff": ["aif", "aiff", "aifc"],
+		"audio/x-flac": ["flac"],
+		"image/bmp": ["bmp"],
+		"image/tiff": ["tiff", "tif"],
+		"application/vnd.ms-excel": ["xls"],
+		"application/vnd.ms-word": ["doc"],
+		"application/vnd.ms-powerpoint": ["ppt"],
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document": ["docx"],
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": ["xlsx"],
+		"application/vnd.openxmlformats-officedocument.presentationml.presentation": ["pptx"],
+		"application/epub+zip": ["epub"],
+		"application/x-msi": ["msi"],
+		"application/x-dosexec": ["exe"],
+		"application/x-java-archive": ["jar"],
+		"application/x-pem-file": ["pem"],
+		"application/x-pkcs12": ["p12", "pfx"],
+		"application/x-pkcs7-certificates": ["p7b", "spc"],
+		"application/x-pkcs7-certreqresp": ["p7r"],
+		"application/x-font-woff": ["woff"],
+		"application/x-font-woff2": ["woff2"],
+		"audio/midi": ["mid", "midi"],
+		"audio/vnd.rn-realaudio": ["ra"],
+		"model/obj": ["obj"],
+		"model/iges": ["igs", "iges"],
+		"application/x-sh": ["sh"],
+		"application/x-csh": ["csh"],
+		"application/x-ruby": ["rb"],
+		"application/x-perl": ["pl"],
+		"application/x-ms-access": ["mdb"],
+		"application/x-ms-dos-executable": ["exe"],
+		"application/x-compressed": ["tar.gz", "tgz"],
+		"application/x-xz": ["xz"],
+		"application/x-lzip": ["lz"],
+		"application/x-lzma": ["lzma"],
+		"application/x-xar": ["xar"],
+		"application/x-stuffit": ["sit"],
+		"application/vnd.oasis.opendocument.text": ["odt"],
+		"application/vnd.oasis.opendocument.spreadsheet": ["ods"],
+		"application/vnd.oasis.opendocument.drawings": ["odg"],
+		"application/vnd.oasis.opendocument.graphics": ["odg"],
+		"application/vnd.oasis.opendocument.chart": ["odc"],
+		"application/vnd.oasis.opendocument.formula": ["odf"]
+	}
+
+	for mimeType in type_keys.keys():
+		for matchable in type_keys[mimeType]:
+			if type == matchable:
+				return mimeType
+	return "text/plain"

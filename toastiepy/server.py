@@ -1,13 +1,18 @@
-import asyncio
 from . import httpws, constants, response, request
+import asyncio
 import inspect
+import os
 import re
+
 
 class _routeDescriptor:
 	def __init__(self, method, path, fn):
-		self.method = method
-		self.path = path
+		self.method: str = method
+		self.path: str = path
 		self.fn = fn
+		
+	def to_str(self):
+		return f"<{self.method} {self.path}> -> {self.fn}"
 
 class server:
 	def __init__(self, opts={}):
@@ -16,40 +21,48 @@ class server:
 		self.host = None
 		self.port = None
 		self._s = None
-	
+
 	def use(self, path="/", server=None):
 		if re.search(constants.PATH_PATTERN_LIKE, path) is None:
 			raise TypeError("path is not PATH_PATTERN_LIKE")
 		if server is None:
-			raise TypeError("use(path, server): server is not of toastiepy.server")
+			raise TypeError(
+				"use(path, server): server is not of toastiepy.server")
 		self._routes.append(_routeDescriptor(
 			method="MIDDLEWARE",
 			path=path,
 			fn=server
 		))
 		return self
-	
+
 	def all(self, path):
 		return self._addCatch("*", path)
+
 	def get(self, path):
 		return self._addCatch("GET", path)
+
 	def put(self, path):
 		return self._addCatch("PUT", path)
+
 	def post(self, path):
 		return self._addCatch("POST", path)
+
 	def patch(self, path):
 		return self._addCatch("PATCH", path)
+
 	def delete(self, path):
 		return self._addCatch("DELETE", path)
+
 	def websocket(self, path):
 		return self._addCatch("WEBSOCKET", path)
+
 	def _addCatch(self, method, path):
 		def wrapper(fn):
 			if re.search(constants.PATH_PATTERN_LIKE, path) is None:
 				raise TypeError("path is not PATH_PATTERN_LIKE")
-			
+
 			handler = fn
-			
+
 			if method != "WEBSOCKET":
 				func_sig = inspect.signature(fn)
 				num_args = len(func_sig.parameters)
@@ -57,16 +70,16 @@ class server:
 					def droppedNextHandler(req, res, next):
 						return fn(req, res)
 					handler = droppedNextHandler
-			
+
 			self._routes.append(_routeDescriptor(
 				method=method,
 				path=path,
 				fn=handler
 			))
 		return wrapper
-	
+
 	def _getRoutes(self, method, path):
-		routes = []
+		routes: list[_routeDescriptor] = []
 		def _filter(route):
 			if route.method == "MIDDLEWARE":
 				routePath = route.path
@@ -85,7 +98,7 @@ class server:
 				candidatePath = path.split("/")
 				if len(masterPath) != len(candidatePath):
 					return False
-				for idx in range(1,len(masterPath)):
+				for idx in range(1, len(masterPath)):
 					key = masterPath[idx]
 					if key[0] == ':':
 						continue
@@ -96,10 +109,11 @@ class server:
 			if _filter(route):
 				routes.append(route)
 		return routes
-	
+
 	async def _trickleRequest(self, req, res, next):
 		caughtOnce = False
 		continueAfterCatch = False
+
 		def nextFn():
 			nonlocal continueAfterCatch
 			continueAfterCatch = True
@@ -110,7 +124,7 @@ class server:
 			if route.path.find(":") != -1:
 				masterPath = route.path.split("/")
 				candidatePath = req.path.split("/")
-				for idx in range(0,len(masterPath)):
+				for idx in range(0, len(masterPath)):
 					key = masterPath[idx]
 					if key[-1] != ':':
 						continue
@@ -141,7 +155,7 @@ class server:
 				caughtOnce = True
 				ret = route.fn(req, res, nextFn)
 				if asyncio.coroutines.iscoroutine(ret):
-					await ret				
+					await ret
 			if not continueAfterCatch:
 				break
 		if continueAfterCatch:
@@ -150,7 +164,9 @@ class server:
 
 	async def _requestHandler(self, client):
 		res = response.response(self, client)
-		req = request.request(self, client, res, client._tx.transport.get_extra_info("socket").getpeername())
+		req = request.request(
+			self, client, res, client._tx.transport.get_extra_info("socket").getpeername())
+
 		def _nothing():
 			pass
 		try:
@@ -158,13 +174,36 @@ class server:
 			if not res._sentHeaders:
 				res.clear().status(405).send(f"Cannot {req.method} {req.path}")
 				client._tx.close()
+			if not req._upgraded:
+				client._tx.close()
 		except Exception as err:
 			if not res._sentHeaders:
-				res.clear().status(500).send(f"500 Internal Server Error\nUncaught: {err}")
+				res.clear().status(500).send(
+					f"500 Internal Server Error\nUncaught: {err}")
 			client._tx.close()
 			raise err
+			
+	def _insertDefaultFavicon(self):
+		faviconMissing = True
+		for route in self._getRoutes("GET", "/favicon.ico"):
+			if route.path.index("*") == -1:
+				faviconMissing = False
+				break
+		if faviconMissing:
+			faviconPath = f"{os.path.join(os.path.dirname(__file__)).rpartition("/")[0]}/assets/toastiepy.ico"
+			def defaultFavicon(req, res, next):
+				err = res.sendStatic(faviconPath)
+				if err is not None:
+					print("Error sending default '/favicon.ico':",err)
+					next()
+			self._routes.insert(0, _routeDescriptor(
+				method="GET",
+				path="/favicon.ico",
+				fn=defaultFavicon
+			))
 
 	def listen(self, host="127.0.0.1", port=8080):
+		self._insertDefaultFavicon()
 		self.host = host
 		self.port = port
 		self._s = httpws.server(host, port, self._requestHandler)

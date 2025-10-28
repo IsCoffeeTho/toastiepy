@@ -1,5 +1,5 @@
 [build-tools]
-requires = ["setuptools >= 80.9.0"]
+requires = ["setuptools >= 80.9.0", "build"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -11,12 +11,15 @@ authors = [
 	{ name = "Aaron Menadue", email = "aaron.menadue+toastiepy@gmail.com" },
 ]
 keywords = [
+	"web",
 	"http",
 	"websocket",
-	"web",
 	"toastiepy",
 	"toastiebun",
 	"express",
+]
+dependencies = [
+	"asyncio>=4.0.0"
 ]
 
 [tool.setuptools]
@@ -24,3 +27,6 @@ packages = ["toastiepy"]
 
 [tool.setuptools.dynamic]
 version = {attr="toastiepy.__version__"}
+
+[tool.setuptools.package-data]
+"toastiepy" = ["assets/toastiepy.ico"]
