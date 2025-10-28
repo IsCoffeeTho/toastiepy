@@ -91,17 +91,16 @@ class response:
             self._body = body
 
         if isinstance(self._body, bytes):
-            self._body = self._body.decode('utf8')
             if self._contentType is None:  # if not set
                 self._contentType = "application/octet-stream"
         elif isinstance(self._body, dict) or isinstance(self._body, list):
-            self._body = json.JSONEncoder().encode(self._body)
+            self._body = bytes(json.JSONEncoder().encode(self._body), "utf8")
             if self._contentType is None:
                 self._contentType = "application/json"
         elif self._body is None:
-            self._body = ""
+            self._body = b""
         else:
-            self._body = f'{self._body}'
+            self._body = bytes(f'{self._body}', "utf8")
         if self._contentType is None:
             self._contentType = "text/plain"
         self.end()
@@ -270,16 +269,19 @@ class response:
                 511: "Network Authentication Required"
             }
             return map.get(code, "Unknown Response Code")
-        response = f"{self._req.httpVersion} {self._status} {
-            defaultStatusMessage(self._status)}\r\n"
+        response = bytes(f"{self._req.httpVersion} {self._status} {
+            defaultStatusMessage(self._status)}\r\n", "utf8")
 
         self._headers["X-Powered-By"] = [f"ToastiePy v{toastiepy.__version__}"]
 
         for headerName in self._headers:
             for headerLine in self._headers[headerName]:
-                response += f"{headerName}: {headerLine}\r\n"
-        response += "\r\n"
+                response += bytes(f"{headerName}: {headerLine}\r\n", "utf8")
+        response += b"\r\n"
 
-        if self._body is not None and self._body != "":
+        if not isinstance(self._body, bytes):
+            self._body = bytes(self._body, "utf8")
+
+        if self._body is not None and self._body != b"":
             response += self._body
-        return bytes(response, "utf8")
+        return response
