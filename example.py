@@ -56,7 +56,7 @@ def show_cookies(req, res):
 	res.send(req.cookies)
 	
 @app.get("/file")
-def empty(req, res, next):
+def text_file(req, res, next):
 	err = res.sendFile(f"{__dirname}/mockserver/test.txt")
 	if err is not None:
 		next()
@@ -78,6 +78,18 @@ def empty(req, res, next):
 @app.get("/long/path")
 def long_path(req, res):
 	res.send("This is an example long path route")
+
+@app.get("/form")
+def form_endpoint(req, res):
+    err = res.sendStatic(f'{__dirname}/mockserver/form.html')
+    if err is not None:
+        print("missing index, moving on")
+        next()
+
+@app.post("/form")
+def form_handler(req, res):
+    print(req.body)
+    res.send("Got it")
 
 subserver = toastiepy.server()
 app.use("/subserver", subserver)

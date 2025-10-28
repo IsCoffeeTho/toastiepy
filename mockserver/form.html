@@ -29,19 +29,19 @@
 </head>
 
 <body>
-	<h1>ToastiePy</h1>
-	<p>This is an Example server.</p>
-
-	<h3>Check out demos</h3>
-	<ul>
-		<li><a href="/file">Text File</a></li>
-		<li><a href="/empty">Empty File</a></li>
-		<li><a href="/form">Form POST request</a></li>
-		<li><a href="/redirect">redirect &rarr; redirected</a></li>
-		<li><a href="/long/path">/long/path</a></li>
-		<li><a href="/subserver">Subserver</a></li>
-		<li><a href="/404">404 Handler</a></li>
-	</ul>
+	<h1>POST form example</h1>
+	
+	<form method="post">
+		<div>
+			<label for="name">Name</label>
+			<input name="name" type="text" placeholder="John Doe">
+		</div>
+		<div>
+			<label for="email">Email</label>
+			<input name="email" type="text" placeholder="john.doe@example.com">
+		</div>
+		<input type="submit">
+	</form>
 </body>
 
 </html>
