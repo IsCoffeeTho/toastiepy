@@ -6,7 +6,8 @@ class HTTPFrame:
         self._stream = reader
 
     async def parse(self):
-        httpMessage = (await self._stream.read(8192)).decode('utf8')        
+        raw = await self._stream.read(8192)
+        httpMessage = raw.decode('utf8')
         part = httpMessage.partition(' ')
         self.method = part[0]
         part = part[2].partition(' ')
@@ -29,11 +30,11 @@ class HTTPFrame:
             headerValues = header[splitIdx+1:].split(",")
             for idx in range(0, len(headerValues)):
                 self.headers[headerName].append(headerValues[idx].strip(" \t"))
-        body = part[2]
+        body = raw[len(raw)-len(part[2]):]
         if self.headers.get("Content-Length", None) is not None:
             length = int(self.headers["Content-Length"][0] or "0")
             while len(body) < length:
-                chunk = await self._stream.read(len(body) - length)
+                chunk = await self._stream.read(8192)
                 if len(chunk) == 0:
                     break
                 body += chunk
