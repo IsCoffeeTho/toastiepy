@@ -5,6 +5,20 @@ app = toastiepy.server()
 
 __dirname = __file__.rpartition('/')[0]
 
+@app.get("/")
+def index(req, res, next):
+	err = res.sendStatic(f'{__dirname}/mockserver/index.html')
+	if err is not None:
+		print("missing index, moving on")
+		next()
+
+@app.get("/index.css")
+def index_style(req, res, next):
+	err = res.sendStatic(f'{__dirname}/mockserver/index.css')
+	if err is not None:
+		print("missing index, moving on")
+		next()
+
 @app.get("/fail")
 def fail(req, res, next):
 	err = res.sendStatic(f"{__dirname}/mockserver/")
@@ -15,13 +29,6 @@ def fail(req, res, next):
 async def asynchronous(req, res):
 	await asyncio.sleep(1)
 	res.send("waited 1 sec before responding")
-
-@app.get("/")
-def index(req, res, next):
-	err = res.sendStatic(f'{__dirname}/mockserver/index.html')
-	if err is not None:
-		print("missing index, moving on")
-		next()
 
 @app.websocket("/echo-ws")
 async def echo_ws(ws):

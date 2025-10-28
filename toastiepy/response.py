@@ -140,34 +140,7 @@ class response:
             return err
 
     def type(self, type):
-        map = {
-            "": "application/octet-stream",
-                "bin": "application/octet-stream",
-                "binary": "application/octet-stream",
-                ".bin": "application/octet-stream",
-                "text": "text/plain",
-                "plain": "text/plain",
-                "txt": "text/plain",
-                ".txt": "text/plain",
-                "html": "text/html",
-                ".html": "text/html",
-                ".htm": "text/html",
-                ".htmx": "text/html",
-                "js": "application/javascript",
-                ".js": "application/javascript",
-                "jsx": "application/javascript",
-                ".jsx": "application/javascript",
-                "ts": "application/javascript",
-                ".ts": "application/javascript",
-                "tsx": "application/javascript",
-                ".tsx": "application/javascript",
-                "json": "application/json",
-                "object": "application/json",
-                ".json": "application/json",
-                "xml": "text/xml",
-                ".xml": "text/xml"
-        }
-        self._contentType = map.get(type, type)
+        self._contentType = constants.type(type)
 
     def redirect(self, path):
         if self._sentHeaders:
