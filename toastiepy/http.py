@@ -52,7 +52,7 @@ class client:
 		self._rx = rx
 		self._tx = tx
 		self._httpFrame = HTTPFrame(rx)
-		self._websocket = websock.websocketClient((rx, tx))
+		self._websocket = websock.websocket(rx, tx)
 
 	async def parse(self):
 		await self._httpFrame.parse()

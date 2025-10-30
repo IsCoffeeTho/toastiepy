@@ -145,15 +145,14 @@ WS_STATES = {
 	"CLOSE": 3,
 }
 
-class websocketClient:
-	def __init__(self, sock):
-		self._rx: asyncio.StreamReader = sock[0]
-		self._tx: asyncio.StreamWriter = sock[1]
+class websocket:
+	def __init__(self, rx, tx):
+		self._rx: asyncio.StreamReader = rx
+		self._tx: asyncio.StreamWriter = tx
 		self.state = WS_STATES["HTTP"]
 		self._ondata = None
 		self._onclose = None
 		self._onerror = None
-		
 	
 	def _upgradeConnection(self, req, res):
 		websocketKey = req.headers.get("Sec-WebSocket-Key", None)
@@ -174,7 +173,7 @@ class websocketClient:
 		self.state = WS_STATES["OPEN"]
 		return True
 	
-	async def recieveFrames(self):
+	async def _recieveFrame(self):
 		frame = wsFrame()
 		if not await frame.readFrame(self._rx):
 			return None
@@ -184,7 +183,7 @@ class websocketClient:
 		open = True
 		payload = b""
 		while open:
-			frame = await self.recieveFrames()
+			frame = await self._recieveFrame()
 			if frame is None:
 				break
 			
@@ -210,11 +209,9 @@ class websocketClient:
 				await self._tx.drain()
 				self._tx.close()
 				if self._onclose is not None:
-					self._onclose(int(frame.payload[0]) | int(frame.payload[1]) << 8, frame.payload)
+					self._onclose(int(frame.payload[0]) | (int(frame.payload[1]) << 8), frame.payload[2:])
 				return
-			
 			payload += frame.payload
-			
 			if frame.FIN:
 				if self._ondata is not None:
 					ret = self._ondata(payload)
@@ -222,7 +219,7 @@ class websocketClient:
 						asyncio.create_task(ret)
 					payload = b""
 		if self._onclose is not None:
-			ret = self._onclose(None, None)
+			ret = self._onclose(1006, b"Unexpected Closure")
 			if asyncio.coroutines.iscoroutine(ret):
 				await ret # type: ignore
 

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>ToastiePy</title>
+		<link rel="stylesheet" href="/static/index.css" />
+		<script src="/static/websocket.js"></script>
+		<style>
+		
+		div {
+			background-color: #000;
+			width : 75vw;
+		}
+		
+		div input {
+			background-color: #000;
+			color : #fff;
+			caret-color: #fff;
+			caret-shape: block;
+			font-family: monospace;
+			width : 100%;
+			border : 0px;
+			padding : 0px;
+		}
+		
+		div input:active, div input:focus-visible {
+			outline : none !important;
+		}
+		
+		div p {
+			background-color: #000;
+			color : #fff;
+			caret-color: #fff;
+			caret-shape: block;
+			font-family: monospace;
+			width : 100%;
+			border : 0px;
+			padding : 0px;
+			margin-bottom: 0px;
+		}
+		
+		</style>
+	</head>
+	<body>
+		<h1>Echo Websocket</h1>
+		<div>
+			<p id="conn"></p>
+			<input id="input" disabled></input>
+		</div>
+	</body>
+</html>

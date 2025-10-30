@@ -1,18 +1,26 @@
-from . import httpws, constants, response, request
+from . import httpws, constants, response, request, websock
 import asyncio
 import inspect
 import os
 import re
 
+from typing_extensions import Concatenate, ParamSpec
+from typing import Any, Callable
+
+P = ParamSpec('P')
+
+NextFunction = Callable[..., Any]
+HttpHandler = Callable[Concatenate[request.request, response.response, ...], Any]
+WebSocketHandler = Callable[[websock.websocket], Any]
 
 class _routeDescriptor:
-	def __init__(self, method, path, fn):
-		self.method: str = method
-		self.path: str = path
-		self.fn = fn
-		
+	def __init__(self, method:str, path: str, handler):
+		self.method = method
+		self.path = path
+		self.handler = handler
+
 	def to_str(self):
-		return f"<{self.method} {self.path}> -> {self.fn}"
+		return f"<{self.method} {self.path}> => {self.handler}"
 
 class server:
 	def __init__(self, opts={}):
@@ -22,60 +30,71 @@ class server:
 		self.port = None
 		self._s = None
 
-	def use(self, path="/", server=None):
+	def use(self, path="/", handler=None):
 		if re.search(constants.PATH_PATTERN_LIKE, path) is None:
 			raise TypeError("path is not PATH_PATTERN_LIKE")
-		if server is None:
-			raise TypeError(
-				"use(path, server): server is not of toastiepy.server")
+		if not isinstance(handler, server):
+			raise TypeError("use(path, handler): handler is not of toastiepy.server")
 		self._routes.append(_routeDescriptor(
 			method="MIDDLEWARE",
 			path=path,
-			fn=server
+			handler=handler
 		))
 		return self
 
-	def all(self, path):
-		return self._addCatch("*", path)
+	def all(self, path: str):
+		return self._addRoute("*", path)
 
-	def get(self, path):
-		return self._addCatch("GET", path)
+	def get(self, path: str):
+		return self._addRoute("GET", path)
 
-	def put(self, path):
-		return self._addCatch("PUT", path)
+	def put(self, path: str):
+		return self._addRoute("PUT", path)
 
-	def post(self, path):
-		return self._addCatch("POST", path)
+	def post(self, path: str):
+		return self._addRoute("POST", path)
 
-	def patch(self, path):
-		return self._addCatch("PATCH", path)
+	def patch(self, path: str):
+		return self._addRoute("PATCH", path)
 
-	def delete(self, path):
-		return self._addCatch("DELETE", path)
+	def delete(self, path: str):
+		return self._addRoute("DELETE", path)
 
-	def websocket(self, path):
-		return self._addCatch("WEBSOCKET", path)
+	def _addRoute(self, method:str, path: str):
+		def wrapper(fn: HttpHandler):
+			if re.search(constants.PATH_PATTERN_LIKE, path) is None:
+				raise TypeError("path is not PATH_PATTERN_LIKE")
+			handler = fn
 
-	def _addCatch(self, method, path):
-		def wrapper(fn):
+			func_sig = inspect.signature(fn)
+			num_args = len(func_sig.parameters)
+			if num_args == 2:
+				fn = fn
+				def droppedNextHandler(req: request, res: response, next):
+					return fn(req, res)
+				handler = droppedNextHandler
+
+			self._routes.append(_routeDescriptor(
+				method=method,
+				path=path,
+				handler=handler
+			))
+			return fn
+		return wrapper
+
+	def websocket(self, path: str):
+		def wrapper(fn: WebSocketHandler):
 			if re.search(constants.PATH_PATTERN_LIKE, path) is None:
 				raise TypeError("path is not PATH_PATTERN_LIKE")
 
 			handler = fn
 
-			if method != "WEBSOCKET":
-				func_sig = inspect.signature(fn)
-				num_args = len(func_sig.parameters)
-				if num_args == 2:
-					def droppedNextHandler(req, res, next):
-						return fn(req, res)
-					handler = droppedNextHandler
-
 			self._routes.append(_routeDescriptor(
-				method=method,
+				method="WEBSOCKET",
 				path=path,
-				fn=handler
+				handler=handler
 			))
+			return fn
 		return wrapper
 
 	def _getRoutes(self, method, path):
@@ -136,7 +155,7 @@ class server:
 			if route.method == "WEBSOCKET":
 				if req.headers.get("Upgrade", None) != ["websocket"]:
 					continue
-				await req.upgrade(route.fn)
+				await req.upgrade(route.handler)
 				return True
 			elif route.method == "MIDDLEWARE":
 				savedPath = req.path
@@ -145,7 +164,7 @@ class server:
 					req.path = "/"
 				elif req.path[0] != '/':
 					req.path = f'/{req.path}'
-				trickleCaught = await route.fn._trickleRequest(req, res, nextFn)
+				trickleCaught = await route.handler._trickleRequest(req, res, nextFn)
 				if trickleCaught:
 					caughtOnce = True
 				else:
@@ -153,7 +172,7 @@ class server:
 				req.path = savedPath
 			else:
 				caughtOnce = True
-				ret = route.fn(req, res, nextFn)
+				ret = route.handler(req, res, nextFn)
 				if asyncio.coroutines.iscoroutine(ret):
 					await ret
 			if not continueAfterCatch:
@@ -199,7 +218,7 @@ class server:
 			self._routes.insert(0, _routeDescriptor(
 				method="GET",
 				path="/favicon.ico",
-				fn=defaultFavicon
+				handler=defaultFavicon
 			))
 
 	def listen(self, host="127.0.0.1", port=8080):

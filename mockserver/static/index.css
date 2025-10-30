@@ -1,19 +1,37 @@
+:root {
+	--bg: #111;
+	--fg: #fff;
+	--link: #88f;
+}
+
 body {
-	background-color: #111;
-	color: #fff;
-	font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+	background-color: var(--bg);
+	color: var(--fg);
+	font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 }
 
 a {
-	color : #88f;
+	color: var(--link);
 	text-decoration: none;
-	font-family: 'Courier New', Courier, monospace;
+	font-family: "Courier New", Courier, monospace;
 	transition: text-shadow 0.2s;
 }
 
 a:hover {
 	text-shadow: 0px 0px 5px currentColor;
+}
+
+form div {
+	display: flex;
+	flex-direction: column;
+	margin : 0.5em;
+}
+
+form div input {
+	padding: 0.5em;
+	border-radius: 0.5em;
+	border: 0px;
 }

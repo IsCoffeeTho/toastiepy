@@ -1,25 +1,167 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>ToastiePy</title>
-	<link rel="stylesheet" href="/static/index.css">
-</head>
-<body>
-	<h1>POST form example</h1>
-	<form method="post">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>ToastiePy</title>
+		<link rel="stylesheet" href="/static/index.css" />
+	</head>
+	<body>
+		<h1>POST form example</h1>
+		<form method="post">
+			<div>
+				<label for="name">Name</label>
+				<input id="name" name="name" type="text" placeholder="John Doe" />
+			</div>
+			<div>
+				<label for="email">Email</label>
+				<input id="email" name="email" type="text" placeholder="john.doe@example.com" />
+			</div>
+			<div>
+				<input type="submit" />
+			</div>
+		</form>
 		<div>
-			<label for="name">Name</label>
-			<input name="name" type="text" placeholder="John Doe">
-		</div>
-		<div>
-			<label for="email">Email</label>
-			<input name="email" type="text" placeholder="john.doe@example.com">
-		</div>
-		<input type="submit">
-	</form>
-</body>
+			<script>
+				function prefill() {
+					var firstnames = [
+						"Aiden",
+						"Brielle",
+						"Camden",
+						"Delia",
+						"Elias",
+						"Freya",
+						"Grant",
+						"Harlow",
+						"Imani",
+						"Jace",
+						"Kaia",
+						"Lennox",
+						"Mira",
+						"Nolan",
+						"Orla",
+						"Pax",
+						"Quinn",
+						"Rowan",
+						"Sloane",
+						"Thiago",
+						"Uma",
+						"Vance",
+						"Wren",
+						"Xander",
+						"Yara",
+						"Zane",
+						"Adele",
+						"Beckett",
+						"Cora",
+						"Dashiell",
+						"Ember",
+						"Felix",
+						"Giselle",
+						"Hugo",
+						"Isla",
+						"Jasper",
+						"Kiera",
+						"Luca",
+						"Maeve",
+						"Nico",
+					];
+					var lastnames = [
+						"Ashford",
+						"Baxter",
+						"Calder",
+						"Delmore",
+						"Everly",
+						"Fairchild",
+						"Grayson",
+						"Huxley",
+						"Iverson",
+						"Jamison",
+						"Kincaid",
+						"Larkins",
+						"Montrose",
+						"Norrell",
+						"Oakley",
+						"Pendleton",
+						"Quigley",
+						"Radford",
+						"Sinclair",
+						"Thornton",
+						"Underwood",
+						"Voss",
+						"Winslow",
+						"Ximenez",
+						"Yates",
+						"Zephyr",
+						"Alden",
+						"Bramwell",
+						"Corbin",
+						"Drexel",
+						"Ellison",
+						"Fenwick",
+						"Gallagher",
+						"Hawthorne",
+						"Ingram",
+						"Kepler",
+						"Lockwood",
+						"Merrick",
+						"Northrop",
+						"Orrin",
+					];
+					var emaildomains = [
+						"mailhaven.com",
+						"postboxhub.com",
+						"inboxlane.net",
+						"sendwise.co",
+						"quickmail.io",
+						"urbanpost.org",
+						"cloudpost.co",
+						"tapmail.com",
+						"nexenmail.net",
+						"relaybox.io",
+						"postscape.com",
+						"streammail.org",
+						"echo-inbox.com",
+						"skylinkmail.net",
+						"fluxmail.co",
+						"boxaroo.com",
+						"nodemail.io",
+						"brightpost.net",
+						"waypointmail.com",
+						"tealpost.co",
+						"weekdaymail.com",
+						"polarpost.net",
+						"embermail.io",
+						"emberpost.com",
+						"grove-mail.com",
+						"homemailhub.net",
+						"orbitinbox.com",
+						"meadowmail.co",
+						"sentinelmail.io",
+						"example-mail.test",
+					];
 
+					var firstname = firstnames[Math.floor(Math.random() * firstnames.length)];
+					var lastname = lastnames[Math.floor(Math.random() * lastnames.length)];
+					var emaildomain = emaildomains[Math.floor(Math.random() * emaildomains.length)];
+					
+					var emailAddresses = [
+						`${firstname}.${lastname}@${emaildomain}`,
+						`${firstname}.${lastname}@${emaildomain}`,
+						`${firstname}_${lastname}@${emaildomain}`,
+						`${firstname}-${lastname}@${emaildomain}`,
+						`${firstname[0]}${lastname}@${emaildomain}`,
+						`${lastname}${firstname[0]}@${emaildomain}`,
+						`${firstname[0]}.${lastname}@${emaildomain}`
+					];
+					
+					var emailAddress = emailAddresses[Math.floor(Math.random() * emailAddresses.length)];
+					
+					document.getElementById("name").value = `${firstname} ${lastname}`;
+					document.getElementById("email").value = emailAddress.toLowerCase();
+				}
+			</script>
+			<button onclick="prefill()">pre-fill</button>
+		</div>
+	</body>
 </html>

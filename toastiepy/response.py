@@ -4,9 +4,7 @@ from stat import S_ISREG
 import json
 import os
 import re
-
 import toastiepy
-
 
 def InvalidHeaderAccess():
 	return Exception("Invalid Header Access, cannot modify headers after sending.")
