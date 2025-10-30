@@ -64,5 +64,5 @@ document.onload = window.onload = () => {
 		word = word[0].toUpperCase() + word.slice(1).toLowerCase();
 		randomEndpoint += word;
 	}
-	document.getElementById("404link").attributes.href.value = `/${randomEndpoint}`;
+	document.getElementById("rand404").attributes.href.value = `${window.location}/${randomEndpoint}`;
 };
