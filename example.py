@@ -30,7 +30,7 @@ def fail(req: toastiepy.request, res: toastiepy.response, next):
 @app.get("/async")
 async def asynchronous(req: toastiepy.request, res: toastiepy.response):
 	await asyncio.sleep(1)
-	res.send("waited 1 sec before responding")
+	res.send("Waited 1 sec before responding")
 
 @app.get("/cookie/:name")
 def cookie_blank(req: toastiepy.request, res: toastiepy.response):
@@ -72,7 +72,7 @@ def redirect(req: toastiepy.request, res: toastiepy.response):
 
 @app.get("/redirected")
 def redirected(req: toastiepy.request, res: toastiepy.response):
-	res.send("redirected from redirect")
+	res.send("Redirected from redirect")
 
 @app.get("/long/path")
 def long_path(req: toastiepy.request, res: toastiepy.response):
