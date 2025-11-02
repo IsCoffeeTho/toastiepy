@@ -12,7 +12,7 @@ pip install toastiepy
 ```
 ### Usage
 ```py
-// main.py
+# main.py
 import toastiepy
 
 app = toastiepy.server()
