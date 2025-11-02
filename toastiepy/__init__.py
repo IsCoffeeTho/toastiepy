@@ -5,4 +5,4 @@ from .websock import websocket
 
 __version__ = "0.0.13"
 
-__all__ = ["server", "response", "request"]
+__all__ = ["server", "response", "request", "websocket"]
