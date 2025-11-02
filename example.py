@@ -8,16 +8,17 @@ __dirname = __file__.rpartition('/')[0]
 
 @app.get("/")
 def index(req: toastiepy.request, res: toastiepy.response, next):
+	# This function returns the exception
 	err = res.sendFile(f'{__dirname}/mockserver/index.html')
 	if err is not None:
-		print("missing index, moving on")
+		print("Missing index, moving on")
 		next()
 
 @app.get("/static/*")
 def index_style(req: toastiepy.request, res: toastiepy.response, next):
 	err = res.sendStatic(f'{__dirname}/mockserver{req.path}')
 	if err is not None:
-		print("missing index, moving on")
+		print("Missing staticfile, moving on")
 		next()
 
 @app.get("/fail")
@@ -59,6 +60,12 @@ def text_file(req: toastiepy.request, res: toastiepy.response, next):
 	if err is not None:
 		next()
 
+@app.get("/empty")
+def empty(req: toastiepy.request, res: toastiepy.response, next):
+	err = res.sendFile(f"{__dirname}/mockserver/emptyFile.txt")
+	if err is not None:
+		next()
+
 @app.get("/redirect")
 def redirect(req: toastiepy.request, res: toastiepy.response):
 	res.redirect(f"/redirected?={req.path}")
@@ -67,23 +74,18 @@ def redirect(req: toastiepy.request, res: toastiepy.response):
 def redirected(req: toastiepy.request, res: toastiepy.response):
 	res.send("redirected from redirect")
 
-@app.get("/empty")
-def empty(req: toastiepy.request, res: toastiepy.response, next):
-	err = res.sendFile(f"{__dirname}/mockserver/emptyFile.txt")
-	if err is not None:
-		next()
-
 @app.get("/long/path")
 def long_path(req: toastiepy.request, res: toastiepy.response):
 	res.send("This is an example long path route")
 
 @app.get("/websocket")
-def echo_ws_client(req: toastiepy.request, res: toastiepy.response):
-	res.sendFile(f"{__dirname}/mockserver/websocket.html")
+def echo_ws_client(req: toastiepy.request, res: toastiepy.response, next):
+	err = res.sendFile(f"{__dirname}/mockserver/websocket.html")
+	if err is not None:
+		next()
 
 @app.websocket("/echo-ws")
 async def echo_ws(ws: toastiepy.websocket):
-	await ws.send(b"Connected")
 	@ws.ondata
 	async def ws_data_echo(data):
 		await ws.send(data)
@@ -91,6 +93,11 @@ async def echo_ws(ws: toastiepy.websocket):
 	def ws_close(code, reason):
 		# Could do some session management
 		pass
+	await ws.send(b"Connected")
+	
+@app.get("/say/:word")
+def say_endpoint(req, res):
+	res.send(req.params["word"])
 
 @app.get("/form")
 def form_endpoint(req: toastiepy.request, res: toastiepy.response, next):
