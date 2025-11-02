@@ -4,7 +4,7 @@
 
 ToastiePy is an express like python based http server framework.
 
-<img src="https://raw.githubusercontent.com/IsCoffeeTho/toastiepy/master/assets/toastiepy.svg" height="300px" alt="Toastie (The Cat)">
+<img src="https://raw.githubusercontent.com/IsCoffeeTho/toastiepy/master/toatiepy/assets/toastiepy.svg" height="300px" alt="Toastie (The Cat)">
 
 ## Installation
 ```bash

@@ -209,7 +209,7 @@ class server:
 				faviconMissing = False
 				break
 		if faviconMissing:
-			faviconPath = f"{os.path.join(os.path.dirname(__file__)).rpartition("/")[0]}/assets/toastiepy.ico"
+			faviconPath = f"{os.path.join(os.path.dirname(__file__))}/toastiepy.ico"
 			def defaultFavicon(req, res, next):
 				err = res.sendStatic(faviconPath)
 				if err is not None:
