@@ -18,7 +18,7 @@ import toastiepy
 app = toastiepy.server()
 
 @app.get("/")
-def index(req, res):
+def index(req, res): # function name does not matter 
 	res.send("Hello from Toastiebun")
 
 if __name__ == "__main__":
