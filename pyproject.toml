@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "toastiepy"
 dynamic = ["version"]
-description = "Adds expressjs like webframework to your python project"
+description = "ToastiePy is an express like python based http server framework."
 readme = "README.md"
 authors = [
 	{ name = "Aaron Menadue", email = "aaron.menadue+toastiepy@gmail.com" },
