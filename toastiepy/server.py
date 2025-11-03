@@ -205,7 +205,7 @@ class server:
 	def _insertDefaultFavicon(self):
 		faviconMissing = True
 		for route in self._getRoutes("GET", "/favicon.ico"):
-			if route.path.index("*") == -1:
+			if route.path.find("*") == -1:
 				faviconMissing = False
 				break
 		if faviconMissing:
